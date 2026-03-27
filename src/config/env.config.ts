@@ -15,5 +15,6 @@ export const ENV = {
     },
     LOG: {
         LEVEL: process.env.LOG_LEVEL || 'info',
-    }
+    },
+    STORAGE_SERVICE_URL: process.env.STORAGE_SERVICE_URL || 'http://localhost:3005',
 };

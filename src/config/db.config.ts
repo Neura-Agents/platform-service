@@ -33,6 +33,32 @@ export const initDb = async () => {
 
             CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
 
+            CREATE TABLE IF NOT EXISTS prompts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                type VARCHAR(100) NOT NULL,
+                content TEXT NOT NULL,
+                prompt_text TEXT,
+                metadata JSONB DEFAULT '{}',
+                storage_path VARCHAR(255),
+                is_active BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_prompts_type_active ON prompts(type, is_active);
+
+            -- Ensure columns exist for existing installations
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='prompt_text') THEN
+                    ALTER TABLE prompts ADD COLUMN prompt_text TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='metadata') THEN
+                    ALTER TABLE prompts ADD COLUMN metadata JSONB DEFAULT '{}';
+                END IF;
+            END $$;
+
             -- Seed roles
             INSERT INTO roles (name, description)
             VALUES 

@@ -6,6 +6,7 @@ import logger from './config/logger';
 
 import featureRoutes from './routes/feature.routes';
 import roleRoutes from './routes/role.routes';
+import promptRoutes from './routes/prompt.routes';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/backend/api/platform/features', featureRoutes);
 app.use('/backend/api/platform/roles', roleRoutes);
+app.use('/backend/api/platform/prompts', promptRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
