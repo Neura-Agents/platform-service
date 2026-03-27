@@ -70,23 +70,30 @@ export class PromptService {
             try {
                 await client.query('BEGIN');
                 
+                // Get the type ID from name
+                const typeResult = await client.query('SELECT id FROM prompt_types WHERE name = $1', [type]);
+                if (typeResult.rows.length === 0) {
+                    throw new Error(`Invalid prompt type: ${type}`);
+                }
+                const promptTypeId = typeResult.rows[0].id;
+
                 // Set all existing prompts of this type to inactive
                 await client.query(
-                    'UPDATE prompts SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE type = $1',
-                    [type]
+                    'UPDATE prompts SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE prompt_type_id = $1',
+                    [promptTypeId]
                 );
 
                 // Insert new prompt as active
                 const result = await client.query(
-                    `INSERT INTO prompts (name, type, content, prompt_text, metadata, storage_path, is_active) 
+                    `INSERT INTO prompts (name, prompt_type_id, content, prompt_text, metadata, storage_path, is_active) 
                      VALUES ($1, $2, $3, $4, $5, $6, true) 
                      RETURNING *`,
-                    [name, type, fullContent, promptText, JSON.stringify(metadata), storagePath]
+                    [name, promptTypeId, fullContent, promptText, JSON.stringify(metadata), storagePath]
                 );
 
                 await client.query('COMMIT');
                 logger.info({ id: result.rows[0].id, type }, 'New active prompt saved to DB with parsed metadata');
-                return result.rows[0] as PromptMetadata;
+                return { ...result.rows[0], type };
             } catch (error) {
                 await client.query('ROLLBACK');
                 throw error;
@@ -101,22 +108,75 @@ export class PromptService {
 
     async getActivePrompt(type: string): Promise<PromptMetadata | null> {
         const result = await pool.query(
-            'SELECT * FROM prompts WHERE type = $1 AND is_active = true',
+            `SELECT p.*, pt.name as type 
+             FROM prompts p 
+             JOIN prompt_types pt ON p.prompt_type_id = pt.id 
+             WHERE pt.name = $1 AND p.is_active = true`,
             [type]
         );
         return result.rows[0] || null;
     }
 
-    async listPrompts(type?: string): Promise<PromptMetadata[]> {
-        let query = 'SELECT * FROM prompts';
+    async listPrompts(options: { 
+        type?: string, 
+        page?: number, 
+        limit?: number, 
+        promptId?: string, 
+        name?: string,
+        q?: string
+    }): Promise<{ prompts: PromptMetadata[], total: number, totalPages: number }> {
+        const { type, page = 1, limit = 10, promptId, name, q } = options;
+        const offset = (page - 1) * limit;
+        
+        let query = 'SELECT p.*, pt.name as type FROM prompts p JOIN prompt_types pt ON p.prompt_type_id = pt.id';
+        let countQuery = 'SELECT COUNT(*) FROM prompts p JOIN prompt_types pt ON p.prompt_type_id = pt.id';
         const params: any[] = [];
+        const whereClauses: string[] = [];
+
         if (type) {
-            query += ' WHERE type = $1';
+            whereClauses.push(`pt.name = $${params.length + 1}`);
             params.push(type);
         }
+        
+        if (promptId) {
+            whereClauses.push(`p.id::text LIKE $${params.length + 1}`);
+            params.push(`%${promptId}%`);
+        }
+        
+        if (name) {
+            whereClauses.push(`p.name ILIKE $${params.length + 1}`);
+            params.push(`%${name}%`);
+        }
+
+        if (q) {
+            whereClauses.push(`(p.name ILIKE $${params.length + 1} OR p.id::text LIKE $${params.length + 1})`);
+            params.push(`%${q}%`);
+        }
+
+        if (whereClauses.length > 0) {
+            query += ' WHERE ' + whereClauses.join(' AND ');
+            countQuery += ' WHERE ' + whereClauses.join(' AND ');
+        }
+
         query += ' ORDER BY created_at DESC';
-        const result = await pool.query(query, params);
-        return result.rows;
+        
+        // Final query with pagination
+        const paginatedQuery = `${query} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        const paginatedParams = [...params, limit, offset];
+
+        const [result, countResult] = await Promise.all([
+            pool.query(paginatedQuery, paginatedParams),
+            pool.query(countQuery, params)
+        ]);
+
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            prompts: result.rows,
+            total,
+            totalPages
+        };
     }
 
     async activatePrompt(id: string): Promise<PromptMetadata> {
@@ -124,27 +184,33 @@ export class PromptService {
         try {
             await client.query('BEGIN');
             
-            // 1. Get the prompt to find its type
-            const getPrompt = await client.query('SELECT type FROM prompts WHERE id = $1', [id]);
+            // 1. Get the prompt to find its type_id
+            const getPrompt = await client.query('SELECT prompt_type_id FROM prompts WHERE id = $1', [id]);
             if (getPrompt.rows.length === 0) {
                 throw new Error('Prompt not found');
             }
-            const type = getPrompt.rows[0].type;
+            const promptTypeId = getPrompt.rows[0].prompt_type_id;
 
             // 2. Deactivate all of that type
             await client.query(
-                'UPDATE prompts SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE type = $1',
-                [type]
+                'UPDATE prompts SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE prompt_type_id = $1',
+                [promptTypeId]
             );
 
             // 3. Activate the chosen one
             const result = await client.query(
-                'UPDATE prompts SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+                `UPDATE prompts 
+                 SET is_active = true, updated_at = CURRENT_TIMESTAMP 
+                 WHERE id = $1 
+                 RETURNING *`,
                 [id]
             );
 
+            // Fetch the type name for the response
+            const typeResult = await client.query('SELECT name FROM prompt_types WHERE id = $1', [promptTypeId]);
+
             await client.query('COMMIT');
-            return result.rows[0] as PromptMetadata;
+            return { ...result.rows[0], type: typeResult.rows[0].name };
         } catch (error) {
             await client.query('ROLLBACK');
             throw error;
@@ -175,8 +241,14 @@ export class PromptService {
         if (result.rows.length === 0) {
             throw new Error('Prompt not found');
         }
+
+        // Fetch type name for compatibility
+        const typeResult = await pool.query(
+            'SELECT pt.name FROM prompt_types pt JOIN prompts p ON p.prompt_type_id = pt.id WHERE p.id = $1',
+            [id]
+        );
         
-        return result.rows[0] as PromptMetadata;
+        return { ...result.rows[0], type: typeResult.rows[0]?.name } as PromptMetadata;
     }
 
     private async validateRoles(roles: string[]): Promise<void> {
@@ -219,6 +291,11 @@ export class PromptService {
         if (invalidSlugs.length > 0) {
             throw new Error(`Invalid agent slugs: ${invalidSlugs.join(', ')}`);
         }
+    }
+
+    async listPromptTypes(): Promise<{ id: string, name: string, description: string }[]> {
+        const result = await pool.query('SELECT * FROM prompt_types ORDER BY name ASC');
+        return result.rows;
     }
 }
 

@@ -18,6 +18,9 @@ router.get('/list', authenticate, promptController.listPrompts);
 // PUT /backend/api/platform/prompts/:id/activate
 router.put('/:id/activate', authenticate, promptController.activatePrompt);
 
+// GET /backend/api/platform/prompts/types
+router.get('/types', authenticate, promptController.listPromptTypes);
+
 // PUT /backend/api/platform/prompts/:id/targeting
 router.put('/:id/targeting', authenticate, promptController.updateTargeting);
 

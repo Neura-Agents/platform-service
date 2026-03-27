@@ -24,6 +24,8 @@ export const initDb = async () => {
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
+
             CREATE TABLE IF NOT EXISTS roles (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) UNIQUE NOT NULL,
@@ -31,12 +33,17 @@ export const initDb = async () => {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE INDEX IF NOT EXISTS idx_feature_flags_key ON feature_flags(key);
+            CREATE TABLE IF NOT EXISTS prompt_types (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) UNIQUE NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
 
             CREATE TABLE IF NOT EXISTS prompts (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
-                type VARCHAR(100) NOT NULL,
+                prompt_type_id UUID REFERENCES prompt_types(id),
                 content TEXT NOT NULL,
                 prompt_text TEXT,
                 metadata JSONB DEFAULT '{}',
@@ -46,11 +53,12 @@ export const initDb = async () => {
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE INDEX IF NOT EXISTS idx_prompts_type_active ON prompts(type, is_active);
-
-            -- Ensure columns exist for existing installations
+            -- Ensure prompt_type_id column exists for existing installations
             DO $$ 
             BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='prompt_type_id') THEN
+                    ALTER TABLE prompts ADD COLUMN prompt_type_id UUID REFERENCES prompt_types(id);
+                END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='prompt_text') THEN
                     ALTER TABLE prompts ADD COLUMN prompt_text TEXT;
                 END IF;
@@ -58,6 +66,27 @@ export const initDb = async () => {
                     ALTER TABLE prompts ADD COLUMN metadata JSONB DEFAULT '{}';
                 END IF;
             END $$;
+
+            -- Seed default prompt types
+            INSERT INTO prompt_types (name, description)
+            VALUES 
+                ('agent-execution', 'Main agent execution instruction template')
+            ON CONFLICT (name) DO NOTHING;
+
+            -- Migrate existing 'type' string data to prompt_type_id if prompt_type_id is null
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='type') THEN
+                    UPDATE prompts p
+                    SET prompt_type_id = pt.id
+                    FROM prompt_types pt
+                    WHERE p.type = pt.name AND p.prompt_type_id IS NULL;
+                END IF;
+            END $$;
+
+            -- Optional: Index on prompt_type_id
+            CREATE INDEX IF NOT EXISTS idx_prompts_type_id ON prompts(prompt_type_id);
+            CREATE INDEX IF NOT EXISTS idx_prompts_type_active ON prompts(prompt_type_id, is_active);
 
             -- Seed roles
             INSERT INTO roles (name, description)

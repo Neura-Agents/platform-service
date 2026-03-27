@@ -46,8 +46,14 @@ export class PromptController {
     async listPrompts(req: AuthenticatedRequest, res: Response) {
         try {
             const type = typeof req.query.type === 'string' ? req.query.type : undefined;
-            const prompts = await promptService.listPrompts(type);
-            res.json({ status: 'OK', prompts });
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const promptId = typeof req.query.promptId === 'string' ? req.query.promptId : undefined;
+            const name = typeof req.query.name === 'string' ? req.query.name : undefined;
+            const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+
+            const result = await promptService.listPrompts({ type, page, limit, promptId, name, q });
+            res.json({ status: 'OK', ...result });
         } catch (error: any) {
             res.status(500).json({ status: 'ERR', error: error.message });
         }
@@ -78,6 +84,15 @@ export class PromptController {
             )) {
                 return res.status(400).json({ status: 'ERR', error: error.message });
             }
+            res.status(500).json({ status: 'ERR', error: error.message });
+        }
+    }
+
+    async listPromptTypes(req: AuthenticatedRequest, res: Response) {
+        try {
+            const types = await promptService.listPromptTypes();
+            res.json({ status: 'OK', types });
+        } catch (error: any) {
             res.status(500).json({ status: 'ERR', error: error.message });
         }
     }
