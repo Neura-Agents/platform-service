@@ -16,8 +16,6 @@ COPY package*.json ./
 RUN npm install --production
 
 COPY --from=builder /app/dist ./dist
-# We still need the .env or env vars injected at runtime
-# COPY .env .env 
 
 EXPOSE 3006
 
