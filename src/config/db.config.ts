@@ -77,6 +77,9 @@ export const initDb = async () => {
             DO $$
             BEGIN
                 IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='type') THEN
+                    -- Make it nullable first to avoid insertion errors during transition
+                    ALTER TABLE prompts ALTER COLUMN type DROP NOT NULL;
+
                     UPDATE prompts p
                     SET prompt_type_id = pt.id
                     FROM prompt_types pt
@@ -107,6 +110,28 @@ export const initDb = async () => {
                 ('feature-api-keys', 'API Key Management', 'Developer API key tools', false, '{"users": [], "roles": ["platform-admin"], "percentage": 100}'),
                 ('feature-usage-analytics', 'Usage Dashboard', 'Detailed consumption analytics', true, '{"users": [], "roles": [], "percentage": 50}')
             ON CONFLICT (key) DO NOTHING;
+
+            CREATE TABLE IF NOT EXISTS usage (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                execution_id VARCHAR(255) NOT NULL,
+                agent_id VARCHAR(255) NOT NULL,
+                api_key VARCHAR(255),
+                user_id VARCHAR(255),
+                total_input_tokens INTEGER DEFAULT 0,
+                total_completion_tokens INTEGER DEFAULT 0,
+                total_tokens INTEGER DEFAULT 0,
+                total_cost NUMERIC(15, 10) DEFAULT 0,
+                initial_request JSONB,
+                final_response JSONB,
+                llm_calls JSONB DEFAULT '[]',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_usage_agent_id ON usage(agent_id);
+            CREATE INDEX IF NOT EXISTS idx_usage_api_key ON usage(api_key);
+            CREATE INDEX IF NOT EXISTS idx_usage_user_id ON usage(user_id);
+            CREATE INDEX IF NOT EXISTS idx_usage_execution_id ON usage(execution_id);
+            CREATE INDEX IF NOT EXISTS idx_usage_created_at ON usage(created_at);
         `);
         logger.info('Platform database initialized successfully');
     } catch (error) {
