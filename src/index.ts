@@ -8,12 +8,15 @@ import featureRoutes from './routes/feature.routes';
 import roleRoutes from './routes/role.routes';
 import promptRoutes from './routes/prompt.routes';
 import usageRoutes from './routes/usage.routes';
+import navigationRoutes from './routes/navigation.routes';
+import pricingRoutes from './routes/pricing.routes';
 
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Log requests
 app.use((req, res, next) => {
@@ -30,6 +33,8 @@ app.use('/backend/api/platform/features', featureRoutes);
 app.use('/backend/api/platform/roles', roleRoutes);
 app.use('/backend/api/platform/prompts', promptRoutes);
 app.use('/backend/api/platform/usage', usageRoutes);
+app.use('/backend/api/platform/navigation', navigationRoutes);
+app.use('/backend/api/platform/pricing', pricingRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

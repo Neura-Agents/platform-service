@@ -1,27 +1,27 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { promptController } from '../controllers/prompt.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { authenticate, requirePlatformAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // POST /backend/api/platform/prompts/upload
-router.post('/upload', authenticate, upload.single('file'), promptController.uploadPrompt);
+router.post('/upload', authenticate, requirePlatformAdmin, upload.single('file'), promptController.uploadPrompt);
 
 // GET /backend/api/platform/prompts/active/:type
-router.get('/active/:type', authenticate, promptController.getActivePrompt);
+router.get('/active/:type', authenticate, requirePlatformAdmin, promptController.getActivePrompt);
 
 // GET /backend/api/platform/prompts/list
-router.get('/list', authenticate, promptController.listPrompts);
+router.get('/list', authenticate, requirePlatformAdmin, promptController.listPrompts);
 
 // PUT /backend/api/platform/prompts/:id/activate
-router.put('/:id/activate', authenticate, promptController.activatePrompt);
+router.put('/:id/activate', authenticate, requirePlatformAdmin, promptController.activatePrompt);
 
 // GET /backend/api/platform/prompts/types
-router.get('/types', authenticate, promptController.listPromptTypes);
+router.get('/types', authenticate, requirePlatformAdmin, promptController.listPromptTypes);
 
 // PUT /backend/api/platform/prompts/:id/targeting
-router.put('/:id/targeting', authenticate, promptController.updateTargeting);
+router.put('/:id/targeting', authenticate, requirePlatformAdmin, promptController.updateTargeting);
 
 export default router;

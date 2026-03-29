@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { listFeatures, getFeatureByKey, updateFeature, evaluateFeature, evaluateAllFeatures } from '../controllers/feature.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { authenticate, requirePlatformAdmin } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -9,8 +9,8 @@ router.get('/evaluate/:key', authenticate, evaluateFeature);
 router.get('/evaluations', authenticate, evaluateAllFeatures);
 
 // Meta & Management
-router.get('/', authenticate, listFeatures);
-router.get('/:key', authenticate, getFeatureByKey);
-router.put('/:id', authenticate, updateFeature);
+router.get('/', authenticate, requirePlatformAdmin, listFeatures);
+router.get('/:key', authenticate, requirePlatformAdmin, getFeatureByKey);
+router.put('/:id', authenticate, requirePlatformAdmin, updateFeature);
 
 export default router;

@@ -55,3 +55,20 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
     res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
 };
+
+export const requireRole = (role: string) => {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user || !req.user.roles || !req.user.roles.includes(role)) {
+            logger.warn({
+                userId: req.user?.id,
+                requiredRole: role,
+                actualRoles: req.user?.roles,
+                url: req.url
+            }, 'Forbidden: Insufficient permissions');
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        next();
+    };
+};
+
+export const requirePlatformAdmin = requireRole('platform-admin');
