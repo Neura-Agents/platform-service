@@ -17,4 +17,9 @@ export const ENV = {
         LEVEL: process.env.LOG_LEVEL || 'info',
     },
     STORAGE_SERVICE_URL: process.env.STORAGE_SERVICE_URL || 'http://localhost:3005',
+    KEYCLOAK: {
+        ISSUER_URL: process.env.KEYCLOAK_ISSUER_URL || 'http://keycloak:8080/realms/neura-agents',
+        PUBLIC_ISSUER_URL: process.env.KEYCLOAK_PUBLIC_ISSUER_URL || 'http://localhost:8081/realms/neura-agents',
+        REALM: process.env.VITE_KEYCLOAK_REALM || 'neura-agents'
+    }
 };
