@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import { ENV } from './config/env.config';
 import { initDb } from './config/db.config';
 import logger from './config/logger';
@@ -14,7 +13,6 @@ import pricingRoutes from './routes/pricing.routes';
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
