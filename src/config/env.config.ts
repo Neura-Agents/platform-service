@@ -17,6 +17,8 @@ export const ENV = {
         LEVEL: process.env.LOG_LEVEL || 'info',
     },
     STORAGE_SERVICE_URL: process.env.STORAGE_SERVICE_URL || 'http://localhost:3005',
+    BILLING_SERVICE_URL: process.env.BILLING_SERVICE_URL || 'http://billing-service:3007',
+    INTERNAL_SERVICE_SECRET: process.env.INTERNAL_SERVICE_SECRET || 'super-secret-key',
     KEYCLOAK: {
         ISSUER_URL: process.env.KEYCLOAK_ISSUER_URL || 'http://keycloak:8080/realms/neura-agents',
         PUBLIC_ISSUER_URL: process.env.KEYCLOAK_PUBLIC_ISSUER_URL || 'http://localhost:8081/realms/neura-agents',

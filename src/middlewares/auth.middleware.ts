@@ -104,3 +104,18 @@ export const requireRole = (role: string) => {
 };
 
 export const requirePlatformAdmin = requireRole('platform-admin');
+
+/**
+ * Internal Authentication for service-to-service communication
+ * Replaces or supplements JWT for backend-only endpoints
+ */
+export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
+    const internalKey = req.headers['x-internal-key'];
+    
+    if (!internalKey || internalKey !== ENV.INTERNAL_SERVICE_SECRET) {
+        logger.warn({ path: req.path, ip: req.ip }, 'Unauthorized internal service access attempt to platform-service');
+        return res.status(401).json({ error: 'Unauthorized: Invalid internal secret' });
+    }
+    
+    next();
+};

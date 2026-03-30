@@ -1,8 +1,39 @@
+import axios from 'axios';
 import { pool } from '../config/db.config';
 import { Usage, UsageFilter } from '../types/usage.types';
 import logger from '../config/logger';
+import { ENV } from '../config/env.config';
 
 export class UsageService {
+    private async consumeCredits(userId: string, amount: number, executionId: string, resourceType: string) {
+        try {
+            logger.info({ userId, amount, executionId }, 'Attempting to consume credits');
+            await axios.post(`${ENV.BILLING_SERVICE_URL}/backend/api/billing/consume`, {
+                userId,
+                amount,
+                executionId: executionId,
+                description: `Consumption for ${resourceType} execution: ${executionId}`
+            }, {
+                headers: {
+                    'x-internal-key': ENV.INTERNAL_SERVICE_SECRET
+                }
+            });
+        } catch (error: any) {
+            logger.error({ 
+                error: error.response?.data || error.message, 
+                userId, 
+                executionId 
+            }, 'Failed to consume credits');
+            
+            // If billing service says 402, it means insufficient funds
+            if (error.response?.status === 402) {
+                throw new Error('TERMINATE_EXECUTION: Insufficient credits');
+            }
+            // For other errors, we log and continue to avoid blocking usage tracking 
+            // unless strict mode is desired.
+        }
+    }
+
     async logUsage(usage: Usage): Promise<Usage> {
         const {
             execution_id,
@@ -19,6 +50,11 @@ export class UsageService {
             final_response,
             llm_calls
         } = usage;
+
+        // 1. If there's a cost, consume credits first
+        if (total_cost && parseFloat(total_cost.toString()) > 0 && user_id) {
+            await this.consumeCredits(user_id, parseFloat(total_cost.toString()), execution_id, resource_type);
+        }
 
         try {
             const result = await pool.query(
