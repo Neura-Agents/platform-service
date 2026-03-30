@@ -114,7 +114,9 @@ export const initDb = async () => {
             CREATE TABLE IF NOT EXISTS usage (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 execution_id VARCHAR(255) NOT NULL,
-                agent_id VARCHAR(255) NOT NULL,
+                resource_id VARCHAR(255) NOT NULL,
+                resource_type VARCHAR(50) NOT NULL,
+                action_type VARCHAR(50) NOT NULL,
                 api_key VARCHAR(255),
                 user_id VARCHAR(255),
                 total_input_tokens INTEGER DEFAULT 0,
@@ -127,7 +129,43 @@ export const initDb = async () => {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
 
-            CREATE INDEX IF NOT EXISTS idx_usage_agent_id ON usage(agent_id);
+            -- Migration for existing usage table logic
+            DO $$ 
+            BEGIN 
+                -- Handle existing columns if we are migrating
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='agent_id') THEN
+                    -- Add new columns if missing
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='resource_id') THEN
+                        ALTER TABLE usage ADD COLUMN resource_id VARCHAR(255);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='resource_type') THEN
+                        ALTER TABLE usage ADD COLUMN resource_type VARCHAR(50);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='action_type') THEN
+                        ALTER TABLE usage ADD COLUMN action_type VARCHAR(50);
+                    END IF;
+
+                    -- Data migration
+                    UPDATE usage 
+                    SET 
+                        resource_id = COALESCE(resource_id, agent_id),
+                        resource_type = COALESCE(resource_type, 'agent'),
+                        action_type = COALESCE(action_type, 'execution')
+                    WHERE agent_id IS NOT NULL;
+
+                    -- Constraints
+                    ALTER TABLE usage ALTER COLUMN resource_id SET NOT NULL;
+                    ALTER TABLE usage ALTER COLUMN resource_type SET NOT NULL;
+                    ALTER TABLE usage ALTER COLUMN action_type SET NOT NULL;
+
+                    -- Cleanup
+                    ALTER TABLE usage DROP COLUMN agent_id;
+                END IF;
+            END $$;
+
+            CREATE INDEX IF NOT EXISTS idx_usage_resource_id ON usage(resource_id);
+            CREATE INDEX IF NOT EXISTS idx_usage_resource_type ON usage(resource_type);
+            CREATE INDEX IF NOT EXISTS idx_usage_action_type ON usage(action_type);
             CREATE INDEX IF NOT EXISTS idx_usage_api_key ON usage(api_key);
             CREATE INDEX IF NOT EXISTS idx_usage_user_id ON usage(user_id);
             CREATE INDEX IF NOT EXISTS idx_usage_execution_id ON usage(execution_id);

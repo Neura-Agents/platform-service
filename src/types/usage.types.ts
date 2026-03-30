@@ -13,7 +13,9 @@ export interface LLMCall {
 export interface Usage {
     id?: string;
     execution_id: string;
-    agent_id: string;
+    resource_id: string;
+    resource_type: 'agent' | 'knowledge-base' | 'knowledge-graph';
+    action_type: 'execution' | 'ingestion' | 'search';
     api_key?: string;
     user_id?: string;
     total_input_tokens: number;
@@ -24,10 +26,17 @@ export interface Usage {
     final_response?: any;
     llm_calls?: LLMCall[];
     created_at?: Date;
+    resource_name?: string;
+    agent_name?: string;
+    kb_name?: string;
+    kg_name?: string;
+    api_key_name?: string;
 }
 
 export interface UsageFilter {
-    agent_id?: string;
+    resource_id?: string;
+    resource_type?: string;
+    action_type?: string;
     api_key?: string;
     user_id?: string;
     execution_id?: string;

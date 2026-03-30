@@ -20,7 +20,9 @@ export const logUsageEntry = async (req: Request, res: Response) => {
 export const listUsageHistory = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const filter: UsageFilter = {
-            agent_id: req.query.agent_id as string,
+            resource_id: req.query.resource_id as string || req.query.agent_id as string, // Fallback for backward compatibility
+            resource_type: req.query.resource_type as any,
+            action_type: req.query.action_type as any,
             api_key: req.query.api_key as string,
             user_id: req.user?.id,
             execution_id: req.query.execution_id as string,
@@ -42,7 +44,9 @@ export const listUsageHistory = async (req: AuthenticatedRequest, res: Response)
 export const getUsageStatsHistory = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const filter: UsageFilter = {
-            agent_id: req.query.agent_id as string,
+            resource_id: req.query.resource_id as string || req.query.agent_id as string,
+            resource_type: req.query.resource_type as any,
+            action_type: req.query.action_type as any,
             api_key: req.query.api_key as string,
             user_id: req.user?.id,
             execution_id: req.query.execution_id as string,
