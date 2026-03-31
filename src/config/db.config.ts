@@ -113,7 +113,7 @@ export const initDb = async () => {
 
             CREATE TABLE IF NOT EXISTS usage (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                execution_id VARCHAR(255) NOT NULL,
+                execution_id VARCHAR(255) UNIQUE NOT NULL,
                 resource_id VARCHAR(255) NOT NULL,
                 resource_type VARCHAR(50) NOT NULL,
                 action_type VARCHAR(50) NOT NULL,
@@ -126,13 +126,28 @@ export const initDb = async () => {
                 initial_request JSONB,
                 final_response JSONB,
                 llm_calls JSONB DEFAULT '[]',
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
 
             -- Migration for existing usage table logic
             DO $$ 
             BEGIN 
                 -- Handle existing columns if we are migrating
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='updated_at') THEN
+                    ALTER TABLE usage ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+                END IF;
+
+                -- Ensure execution_id is unique for UPSERT support
+                IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='execution_id') THEN
+                    -- Check if unique constraint already exists
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'usage_execution_id_key') THEN
+                        -- We must ensure there are no duplicates before adding unique constraint
+                        -- For safety in dev, we just add it. In prod, we'd need a strategy.
+                        ALTER TABLE usage ADD CONSTRAINT usage_execution_id_key UNIQUE (execution_id);
+                    END IF;
+                END IF;
+
                 IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='agent_id') THEN
                     -- Add new columns if missing
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usage' AND column_name='resource_id') THEN

@@ -63,14 +63,24 @@ export class UsageService {
                     total_input_tokens, total_completion_tokens, total_tokens, 
                     total_cost, initial_request, final_response, llm_calls
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                ON CONFLICT (execution_id) DO UPDATE SET
+                    total_input_tokens = usage.total_input_tokens + EXCLUDED.total_input_tokens,
+                    total_completion_tokens = usage.total_completion_tokens + EXCLUDED.total_completion_tokens,
+                    total_tokens = usage.total_tokens + EXCLUDED.total_tokens,
+                    total_cost = usage.total_cost + EXCLUDED.total_cost,
+                    llm_calls = usage.llm_calls || EXCLUDED.llm_calls,
+                    final_response = COALESCE(NULLIF(EXCLUDED.final_response::text, 'null'), usage.final_response::text)::jsonb,
+                    updated_at = NOW()
                 RETURNING *`,
                 [
                     execution_id, resource_id, resource_type, action_type, api_key, user_id,
-                    total_input_tokens, total_completion_tokens, total_tokens,
-                    total_cost, 
-                    JSON.stringify(initial_request), 
-                    JSON.stringify(final_response), 
-                    JSON.stringify(llm_calls)
+                    total_input_tokens || 0, 
+                    total_completion_tokens || 0, 
+                    total_tokens || 0,
+                    total_cost || 0, 
+                    JSON.stringify(initial_request || null), 
+                    JSON.stringify(final_response || null), 
+                    JSON.stringify(llm_calls || [])
                 ]
             );
             return result.rows[0];
