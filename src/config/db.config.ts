@@ -305,6 +305,15 @@ export const initDb = async () => {
                 answer = EXCLUDED.answer,
                 display_order = EXCLUDED.display_order,
                 updated_at = CURRENT_TIMESTAMP;
+
+            -- Generic External API Cache Table
+            CREATE TABLE IF NOT EXISTS external_api_cache (
+                cache_key VARCHAR(255) PRIMARY KEY,
+                response_data JSONB NOT NULL,
+                last_fetched_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_external_api_cache_expires_at ON external_api_cache(expires_at);
         `);
         logger.info('Platform database initialized successfully');
     } catch (error) {

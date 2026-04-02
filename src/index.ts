@@ -9,6 +9,7 @@ import promptRoutes from './routes/prompt.routes';
 import usageRoutes from './routes/usage.routes';
 import navigationRoutes from './routes/navigation.routes';
 import pricingRoutes from './routes/pricing.routes';
+import externalRoutes from './routes/external.routes';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/backend/api/platform/prompts', promptRoutes);
 app.use('/backend/api/platform/usage', usageRoutes);
 app.use('/backend/api/platform/navigation', navigationRoutes);
 app.use('/backend/api/platform/pricing', pricingRoutes);
+app.use('/backend/api/platform/external', externalRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
