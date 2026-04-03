@@ -66,10 +66,7 @@ export const authenticate = async (req: AuthenticatedRequest, res: Response, nex
                     id: decoded.sub,
                     username: decoded.preferred_username,
                     email: decoded.email,
-                    roles: [
-                        ...(decoded.realm_access?.roles || []),
-                        ...(decoded.resource_access?.['neura-agents-client']?.roles || [])
-                    ]
+                    roles: decoded.realm_access?.roles || []
                 };
                 return next();
             }
@@ -117,5 +114,53 @@ export const internalAuth = (req: Request, res: Response, next: NextFunction) =>
         return res.status(401).json({ error: 'Unauthorized: Invalid internal secret' });
     }
     
+    next();
+};
+
+export const tryAuthenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const userId = req.headers['x-user-id'] as string;
+    
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+    const queryToken = req.query.jwt as string;
+
+    if (authHeader) {
+        if (authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        } else {
+            token = authHeader;
+        }
+    } else if (queryToken) {
+        token = queryToken;
+    }
+
+    if (token) {
+        try {
+            const decoded = await new Promise<any>((resolve, reject) => {
+                jwt.verify(token!, getKey, {
+                    issuer: [ENV.KEYCLOAK?.ISSUER_URL, ENV.KEYCLOAK?.PUBLIC_ISSUER_URL],
+                    algorithms: ['RS256']
+                }, (err, payload) => {
+                    if (err) return reject(err);
+                    resolve(payload);
+                });
+            });
+
+            if (decoded && decoded.sub) {
+                req.user = {
+                    id: decoded.sub,
+                    username: decoded.preferred_username,
+                    email: decoded.email,
+                    roles: decoded.realm_access?.roles || []
+                };
+            }
+        } catch (err) {
+            // Silently fail for optional auth
+            logger.debug({ err: (err as any).message }, 'Try-Auth: Token verification failed (ignoring)');
+        }
+    } else if (process.env.NODE_ENV === 'development' && userId) {
+        req.user = { id: userId, roles: ['admin'] };
+    }
+
     next();
 };
