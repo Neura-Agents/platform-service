@@ -5,7 +5,7 @@ import logger from '../config/logger';
 import { ENV } from '../config/env.config';
 
 const client = jwksClient({
-    jwksUri: `${ENV.KEYCLOAK?.ISSUER_URL || `http://keycloak:8080/realms/${ENV.KEYCLOAK?.REALM || 'neura-agents'}`}/protocol/openid-connect/certs`,
+    jwksUri: `${ENV.KEYCLOAK?.ISSUER_URL || `http://keycloak:8080/realms/${ENV.KEYCLOAK?.REALM || 'agentic-ai'}`}/protocol/openid-connect/certs`,
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5
@@ -33,7 +33,7 @@ export interface AuthenticatedRequest extends Request {
 
 export const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userId = req.headers['x-user-id'] as string;
-    
+
     let token: string | undefined;
     const authHeader = req.headers.authorization;
     const queryToken = req.query.jwt as string;
@@ -108,18 +108,18 @@ export const requirePlatformAdmin = requireRole('platform-admin');
  */
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
     const internalKey = req.headers['x-internal-key'];
-    
+
     if (!internalKey || internalKey !== ENV.INTERNAL_SERVICE_SECRET) {
         logger.warn({ path: req.path, ip: req.ip }, 'Unauthorized internal service access attempt to platform-service');
         return res.status(401).json({ error: 'Unauthorized: Invalid internal secret' });
     }
-    
+
     next();
 };
 
 export const tryAuthenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userId = req.headers['x-user-id'] as string;
-    
+
     let token: string | undefined;
     const authHeader = req.headers.authorization;
     const queryToken = req.query.jwt as string;

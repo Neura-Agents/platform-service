@@ -8,6 +8,7 @@ export const pool = new Pool({
     user: ENV.DB.USER,
     password: ENV.DB.PASSWORD,
     database: ENV.DB.NAME,
+    options: `-c search_path=${ENV.DB.SCHEMA},public`,
 });
 
 export const initDb = async () => {
@@ -47,6 +48,9 @@ export const initDb = async () => {
                 content TEXT NOT NULL,
                 prompt_text TEXT,
                 metadata JSONB DEFAULT '{}',
+                targeting_users TEXT[] DEFAULT '{}',
+                targeting_agents TEXT[] DEFAULT '{}',
+                targeting_roles TEXT[] DEFAULT '{}',
                 storage_path VARCHAR(255),
                 is_active BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -64,6 +68,15 @@ export const initDb = async () => {
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='metadata') THEN
                     ALTER TABLE prompts ADD COLUMN metadata JSONB DEFAULT '{}';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='targeting_users') THEN
+                    ALTER TABLE prompts ADD COLUMN targeting_users TEXT[] DEFAULT '{}';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='targeting_agents') THEN
+                    ALTER TABLE prompts ADD COLUMN targeting_agents TEXT[] DEFAULT '{}';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prompts' AND column_name='targeting_roles') THEN
+                    ALTER TABLE prompts ADD COLUMN targeting_roles TEXT[] DEFAULT '{}';
                 END IF;
             END $$;
 
