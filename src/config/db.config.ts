@@ -301,7 +301,7 @@ export const initDb = async () => {
             SELECT id, 'No Bonus Credits', 'Standard rate applies', 0 FROM pricing_plans WHERE category = 'Starter' UNION ALL
             SELECT id, '10 requests/min', 'Rate Limit', 1 FROM pricing_plans WHERE category = 'Starter' UNION ALL
             SELECT id, 'Community Support', '24/7 access to docs', 2 FROM pricing_plans WHERE category = 'Starter' UNION ALL
-            SELECT id, '110', 'Total Credits, 0 FROM pricing_plans WHERE category = 'Pro' UNION ALL
+            SELECT id, '110', 'Total Credits', 0 FROM pricing_plans WHERE category = 'Pro' UNION ALL
             SELECT id, '60 requests/min', 'Rate Limit', 1 FROM pricing_plans WHERE category = 'Pro' UNION ALL
             SELECT id, 'Premium Support', 'Direct email support', 2 FROM pricing_plans WHERE category = 'Pro' UNION ALL
             SELECT id, '575', 'Total Credits', 0 FROM pricing_plans WHERE category = 'Business' UNION ALL
