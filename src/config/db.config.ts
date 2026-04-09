@@ -286,8 +286,8 @@ export const initDb = async () => {
             INSERT INTO pricing_plans (category, title, button_text, button_variant, display_order)
             VALUES 
                 ('Starter', 'Pay as you go', 'Get Started', 'outline', 0),
-                ('Pro', '$49 / month', 'Upgrade to Pro', 'default', 1),
-                ('Business', '$200 / month', 'Upgrade to Business', 'default', 2)
+                ('Pro', '100', 'Upgrade to Pro', 'default', 1),
+                ('Business', '500', 'Upgrade to Business', 'default', 2)
             ON CONFLICT (category) DO UPDATE SET
                 title = EXCLUDED.title,
                 button_text = EXCLUDED.button_text,
@@ -299,16 +299,14 @@ export const initDb = async () => {
             DELETE FROM pricing_features; -- Clean sync for features
             INSERT INTO pricing_features (plan_id, text, subtext, display_order)
             SELECT id, 'No Bonus Credits', 'Standard rate applies', 0 FROM pricing_plans WHERE category = 'Starter' UNION ALL
-            SELECT id, 'Full API Access', 'Access to all models', 1 FROM pricing_plans WHERE category = 'Starter' UNION ALL
+            SELECT id, '10 requests/min', 'Rate Limit', 1 FROM pricing_plans WHERE category = 'Starter' UNION ALL
             SELECT id, 'Community Support', '24/7 access to docs', 2 FROM pricing_plans WHERE category = 'Starter' UNION ALL
-            SELECT id, '5000 Bonus Credits', 'Monthly recurring', 0 FROM pricing_plans WHERE category = 'Pro' UNION ALL
-            SELECT id, 'Priority API Access', 'Higher rate limits', 1 FROM pricing_plans WHERE category = 'Pro' UNION ALL
+            SELECT id, '110', 'Total Credits, 0 FROM pricing_plans WHERE category = 'Pro' UNION ALL
+            SELECT id, '60 requests/min', 'Rate Limit', 1 FROM pricing_plans WHERE category = 'Pro' UNION ALL
             SELECT id, 'Premium Support', 'Direct email support', 2 FROM pricing_plans WHERE category = 'Pro' UNION ALL
-            SELECT id, '25000 Bonus Credits', 'Monthly recurring', 0 FROM pricing_plans WHERE category = 'Business' UNION ALL
-            SELECT id, 'Priority API Access', 'Higher rate limits', 1 FROM pricing_plans WHERE category = 'Business' UNION ALL
-            SELECT id, 'Premium Support', 'Direct email support', 2 FROM pricing_plans WHERE category = 'Business' UNION ALL
-            SELECT id, 'Advanced Analytics', 'Real-time usage tracking', 3 FROM pricing_plans WHERE category = 'Business';
-
+            SELECT id, '575', 'Total Credits', 0 FROM pricing_plans WHERE category = 'Business' UNION ALL
+            SELECT id, '120 requests/min', 'Rate Limit', 1 FROM pricing_plans WHERE category = 'Business' UNION ALL
+            SELECT id, 'Premium Support', 'Direct email support', 2 FROM pricing_plans WHERE category = 'Business';
             -- Seed FAQs
             INSERT INTO faqs (question, answer, display_order)
             VALUES
