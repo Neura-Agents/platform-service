@@ -222,7 +222,7 @@ export const initDb = async () => {
                 ('/', 'Home', 'Welcome to Antigravity', 'Home | Antigravity', 'Home09Icon', '', true, true, 0, NULL),
                 ('/about', 'About Us', 'Learn more about Antigravity', 'About Us | Antigravity', 'InformationCircleIcon', '', true, false, 1, NULL),
                 ('/pricing', 'Pricing', 'View our pricing plans', 'Pricing | Antigravity', 'Wallet03Icon', 'Developers', true, true, 32, NULL),
-                ('/agents', 'Agents', 'Manage your AI agents', 'Agents | Antigravity', 'AiScanIcon', 'Playground', false, true, 10, NULL),
+                ('/agents', 'A2A Agents', 'Manage your AI agents', 'Agents | Antigravity', 'AiScanIcon', 'Playground', false, true, 10, NULL),
                 ('/agent-create', 'Create Agent', 'Build a new AI agent', 'Create Agent | Antigravity', 'Add01Icon', 'Playground', false, true, 11, NULL),
                 ('/mcp', 'MCP', 'Manage Model Context Protocol servers', 'MCP | Antigravity', 'McpServerFreeIcons', 'Capabilities', false, true, 20, NULL),
                 ('/tools', 'Tools', 'Configure external tools', 'Tools | Antigravity', 'ToolsIcon', 'Capabilities', false, true, 21, NULL),
@@ -236,7 +236,8 @@ export const initDb = async () => {
                 ('/users', 'Users', 'Manage platform users', 'Users | Antigravity', 'UserIcon', 'Platform Admin', false, true, 51, 'platform-admin'),
                 ('/platform-features', 'Platform Features', 'Configure platform features', 'Platform Features | Antigravity', 'Settings01Icon', 'Platform Admin', false, true, 52, 'platform-admin'),
                 ('/platform-roles', 'Platform Roles', 'Manage roles and permissions', 'Platform Roles | Antigravity', 'AiNetworkIcon', 'Platform Admin', false, true, 53, 'platform-admin'),
-                ('/platform-prompts', 'System Prompts', 'Manage system templates', 'System Prompts | Antigravity', 'File01Icon', 'Platform Admin', false, true, 54, 'platform-admin')
+                ('/platform-prompts', 'System Prompts', 'Manage system templates', 'System Prompts | Antigravity', 'File01Icon', 'Platform Admin', false, true, 54, 'platform-admin'),
+                ('/revenue', 'Revenue', 'Monitor platform financial performance', 'Revenue | Antigravity', 'Wallet02Icon', 'Platform Admin', false, true, 55, 'platform-admin')
             ON CONFLICT (url) DO UPDATE SET
                 page_name = EXCLUDED.page_name,
                 page_description = EXCLUDED.page_description,
